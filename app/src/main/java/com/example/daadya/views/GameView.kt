@@ -1,10 +1,7 @@
 package com.example.daadya.views
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.RectF
+import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -21,6 +18,7 @@ class GameView: View
     private val color_dight: Int = Color.rgb(0, 0, 0)
     private val color_empty: Int = Color.rgb(200, 200, 200)
     private val color_fill: Int = Color.rgb(0, 0, 0)
+    private val color_wrong: Int = Color.rgb(200, 0, 0)
     private var padding_left : Int = 0
     private var padding_top : Int = 0
     private var view_w : Int = 0
@@ -61,6 +59,18 @@ class GameView: View
         newSize()
     }
 
+    public fun getCell(x: Float?, y: Float?): Pair<Int, Int>? {
+        if (x == null || y == null) {
+            return null
+        }
+        val row = (y - padding_top).toInt() / cell_size - 1
+        val col = (x - padding_left).toInt() / cell_size - 1
+        if (row < 0 || col < 0 || row >= this.model!!.getH() || col >= this.model!!.getW()) {
+            return null
+        }
+        return Pair(row, col)
+    }
+
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         if (this.model != null) {
@@ -70,12 +80,17 @@ class GameView: View
             Log.d("HEIGHT", h.toString())
             for (i in 0 until h) {
                 for (j in 0 until w) {
-                    var color = if (this.model!!.getCell(i, j) == 0) {
-                        this.color_empty
-                    } else {
-                        this.color_fill
+                    val value = this.model!!.getCell(i, j)
+                    var color = when(value) {
+                        1 -> this.color_fill
+                        2 -> this.color_wrong
+                        else -> this.color_empty
                     }
-                    drawCell(canvas!!, i + 1, j + 1, color, null)
+                    var text: String? = null
+                    if (value == 3 || value == 2) {
+                        text = "X"
+                    }
+                    drawCell(canvas!!, i + 1, j + 1, color, text)
                 }
             }
             for (i in 0 until h) {
@@ -96,14 +111,19 @@ class GameView: View
         val bottom : Float = (padding_top + row * cell_size + cell_size - padding_cell).toFloat()
         val right : Float = (padding_left + col * cell_size + cell_size - padding_cell).toFloat()
         val rect = RectF(left, top, right, bottom)
-        Log.d("DRAW", "${row}, ${col}: ${color.toColor()} ${rect}")
         canvas.drawRect(rect, this.paint)
         if (text != null) {
             this.paint.color = this.color_dight
-//            top += (this.cell_size * (1 - this.text_size_coeff) / 2) as Float
             this.paint.isAntiAlias = true;
             this.paint.textAlign = Paint.Align.LEFT
-            canvas.drawText(text!!, left, top, this.paint)
+            var textRect: Rect = Rect()
+            paint.getTextBounds(text, 0, text.length, textRect)
+            canvas.drawText(
+                text!!,
+                left + (cell_size - textRect.width()) / 2,
+                top + (cell_size + textRect.height()) / 2,
+                this.paint
+            )
         }
     }
 }
